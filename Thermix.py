@@ -56,11 +56,11 @@ def Zcij(i, j):
 
 
 def Vcij(i, j):
-    return sy.Pow(((sy.Pow(dfd['Vc'][i-1], 1/3) + sy.Pow(dfd['Vc'][j-1], 1/3))/2), 3)
+    return sy.Pow(((sy.Pow(dfd['Vc'][i-1], 1/3) + sy.Pow(dfd['Vc'][j-1], 1/3))/2), 3) # type: ignore
 
 
 def kij(i, j):
-    return 1 - sy.Pow((2*sy.Pow(dfd['Vc'][i-1]*dfd['Vc'][j-1], 1/6))/(sy.Pow(dfd['Vc'][i-1], 1/3) + sy.Pow(dfd['Vc'][j-1], 1/3)), 3)
+    return 1 - sy.Pow((2*sy.Pow(dfd['Vc'][i-1]*dfd['Vc'][j-1], 1/6))/(sy.Pow(dfd['Vc'][i-1], 1/3) + sy.Pow(dfd['Vc'][j-1], 1/3)), 3) # type: ignore
 
 
 def Tcij(i, j):
@@ -231,4 +231,5 @@ elif R_inter == "FLASH":
         st.write(f'Pressão de orvalho: {resultado[6]} bar')
         st.write(f'Pressão de bolha: {resultado[7]} bar')
     else:
+
         st.warning("A pressão está fora do intervalo válido para o cálculo do flash. O sistema é totalmente líquido ou totalmente vapor.")

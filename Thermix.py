@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import sympy as sy
 from math import exp
-from scipy.optimize import fsolve
 
 st.title("Programa Thermix")
 
@@ -28,7 +27,7 @@ if "parametros" not in st.session_state or st.session_state["parametros"].shape[
 if "Aij" not in st.session_state or st.session_state["Aij"].shape != (n, n):
     st.session_state["Aij"] = pd.DataFrame([["" for _ in range(n)] for _ in range(n)],index=[f"{i+1}" for i in range(n)],columns=[f"{i+1}" for i in range(n)])
 
-st.header("Parâmetros dos componentes:")
+st.header("Adicione os dados dos componentes:")
 edited_df_pmt = st.data_editor(st.session_state["parametros"], use_container_width=True)
 dfd = st.session_state["parametros"].applymap(n_float).transpose().to_dict('list')
 
@@ -97,7 +96,7 @@ def Vsat(T, i):
 
 
 def Zsat(T, i):
-    return Pisat(T, i)*Vsat(T, i)/(83.14462*T)
+    return Pisat(T, i)*Vsat(T, i)/(83.14462*T) # type: ignore
 
 
 def Bb(T, yi=(dfd['Zi']), n=len(dfd['w'])):
@@ -128,33 +127,13 @@ def fiisat(T, i):
 
 
 def Omegaij(T, i, j):
-    try:
-        num = float(dfd['Vi'][j-1])
-        den = float(dfd['Vi'][i-1])
-        a = float(Aij[i-1][j-1])
-        return (num / den) * math.exp(- a / (8.314462 * 0.239006 * T))
-    except Exception:
-        return 0.0
+    return dfd['Vi'][j-1]/dfd['Vi'][i-1] * exp(-Aij[i-1][j-1]/(8.314462*0.239006*T))
 
 
-def gamma(T, i, xi):
-    try:
-        soma_1 = 0.0
-        for j in range(n):
-            soma_1 += float(xi[j]) * Omegaij(T, i, j+1)
-        parte_1 = sy.log(soma_1)
-
-        soma_2 = 0.0
-        for k in range(n):
-            soma_interna = 0.0
-            for m in range(n):
-                soma_interna += float(xi[m]) * Omegaij(T, k+1, m+1)
-            soma_2 += float(xi[k]) * Omegaij(T, k+1, i) / soma_interna
-        parte_2 = sy.log(soma_2)
-
-        return math.exp(parte_1 - parte_2)
-    except Exception:
-        return 1.0
+def gamma(T, i, xi=dfd['Zi'], n=len(dfd['w'])):
+    parte_1 = sy.ln(sum([xi[j]*Omegaij(T, i, j+1) for j in range(n)]))
+    parte_2 = sum([xi[k]*Omegaij(T, k+1, i)/(sum([xi[j]*Omegaij(T, k+1, j+1) for j in range(n)])) for k in range(n)])
+    return exp(sy.Integer(1) - parte_1 - parte_2)
 
 
 def PBOl(T, n=len(dfd['w'])):
@@ -224,7 +203,7 @@ def Flash(T, P, n=len(dfd['w'])):
 
 
 st.header("Escolha um calculo:")
-R_inter = st.selectbox("", options=["PBOL", "PORV", "FLASH"], label_visibility="collapsed")
+R_inter = st.selectbox("", options=[" ","PBOL", "PORV", "FLASH"], label_visibility="collapsed")
 if R_inter == "PBOL":
     resultado = PBOl(T)
     st.write(f'Pressão de bolha: {resultado[0]} bar')
@@ -251,6 +230,4 @@ elif R_inter == "FLASH":
         st.write(f'Pressão de orvalho: {resultado[6]} bar')
         st.write(f'Pressão de bolha: {resultado[7]} bar')
     else:
-
         st.warning("A pressão está fora do intervalo válido para o cálculo do flash. O sistema é totalmente líquido ou totalmente vapor.")
-

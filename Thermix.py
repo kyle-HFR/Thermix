@@ -11,9 +11,9 @@ n = st.number_input("Número de componentes (n)", min_value=1, max_value=10, ste
 st.header("Condições de operação:")
 col1, col2 = st.columns([1, 1]) 
 with col1:
-    T = st.number_input("Temperatura (K)", min_value=0.0, format="%.2f", step=0.000001)
+    T = st.number_input("Temperatura (K)", min_value=0.01, format="%.2f", step=0.000001)
 with col2:
-    P = st.number_input("Pressão (bar)", min_value=0.0, format="%.5f", step=0.000001)
+    P = st.number_input("Pressão (bar)", min_value=0.01, format="%.2f", step=0.000001)
 
 def n_float(x):
     try:
@@ -203,31 +203,81 @@ def Flash(T, P, n=len(dfd['w'])):
 
 
 st.header("Escolha um calculo:")
-R_inter = st.selectbox("", options=[" ","PBOL", "PORV", "FLASH"], label_visibility="collapsed")
-if R_inter == "PBOL":
-    resultado = PBOl(T)
-    st.write(f'Pressão de bolha: {resultado[0]} bar')
-    st.write(f'Composição líquida (xi): {resultado[1]}')
-    st.write(f'Coeficiente de atividade (Gamma): {resultado[2]}')
-    st.write(f'Coeficiente de fugacidade (Fii): {resultado[3]}')
+R_inter = st.selectbox("", options=["PBOL", "PORV", "FLASH"], label_visibility="collapsed")
 
-elif R_inter == "PORV":
-    resultado = PORV(T)
-    st.write(f'Pressão de orvalho: {resultado[0]} bar')
-    st.write(f'Composição vapor (yi): {resultado[1]}')
-    st.write(f'Coeficiente de atividade (Gamma): {resultado[2]}')
-    st.write(f'Coeficiente de fugacidade (Fii): {resultado[3]}')
+# Verificação de dados antes do cálculo
+def dados_validos(dfd, Aij, T, P):
+    try:
+        for col in dfd:
+            if any(val == "" or not isinstance(val, (int, float)) for val in dfd[col]):
+                st.error(f"Coluna '{col}' contém valores inválidos. Preencha todos os campos com números.")
+                return False
+            
+        ## melhorar
+        if not all(isinstance(dfd[col][i], (int, float)) and dfd[col][i] > 0 for col in ["w", "Tc", "Pc", "Vc", "Zc", "Vi"] for i in range(n)):
+            st.error("As colunas 'w', 'Tc', 'Pc', 'Vc', 'Zc' e 'Vi' devem conter apenas números positivos.")
+            return False
 
-elif R_inter == "FLASH":
-    resultado = Flash(T, P)
-    if resultado is not None:
-        st.write(f'Fraçao molar de vapor (V): {resultado[0]}')
-        st.write(f'Composição líquida (xi): {resultado[1]}')
-        st.write(f'Composição vapor (yi): {resultado[2]}')
-        st.write(f'Coeficiente de atividade (Gamma): {resultado[3]}')
-        st.write(f'Coeficiente de fugacidade (Fii): {resultado[4]}')
-        st.write(f'Constante de equilíbrio (Ki): {resultado[5]}')
-        st.write(f'Pressão de orvalho: {resultado[6]} bar')
-        st.write(f'Pressão de bolha: {resultado[7]} bar')
+        if any(any(val == "" or not isinstance(val, (int, float)) for val in linha) for linha in Aij):
+            st.error("A matriz de interação Aij contém valores inválidos.")
+            return False
+
+        if sum(dfd['Zi']) != 1:
+            st.error("A soma das frações molares (Zi) deve ser igual a 1.")
+            return False
+        
+        if T <= 0:
+            st.error("A temperatura deve ser maior que zero.")
+            return False
+        
+        if P <= 0:
+            st.error("A pressão deve ser maior que zero.")
+            return False
+        
+        return True
+    except Exception as e:
+        st.error(f"Ocorreu um erro na validação dos dados: {e}")
+        return False
+
+
+disabled = any(val == "" for col in dfd for val in dfd[col]) or any("" in linha for linha in Aij)
+if st.button("Calcular", disabled=disabled):
+    if not dados_validos(dfd, Aij, T, P):
+        st.stop()
     else:
-        st.warning("A pressão está fora do intervalo válido para o cálculo do flash. O sistema é totalmente líquido ou totalmente vapor.")
+        pass
+        #st.success("Cálculando...")
+    if R_inter == "PBOL":
+        resultado = PBOl(T)
+        st.write(f'Pressão de bolha: {resultado[0]} bar')
+        st.write(f'Composição líquida (xi): {resultado[1]}')
+        st.write(f'Coeficiente de atividade (Gamma): {resultado[2]}')
+        st.write(f'Coeficiente de fugacidade (Fii): {resultado[3]}')
+
+    elif R_inter == "PORV":
+        resultado = PORV(T)
+        st.write(f'Pressão de orvalho: {resultado[0]} bar')
+        st.write(f'Composição vapor (yi): {resultado[1]}')
+        st.write(f'Coeficiente de atividade (Gamma): {resultado[2]}')
+        st.write(f'Coeficiente de fugacidade (Fii): {resultado[3]}')
+
+    elif R_inter == "FLASH":
+        resultado = Flash(T, P)
+        if resultado is not None:
+            st.write(f'Fração molar de vapor (V): {resultado[0]}')
+            st.write(f'Composição líquida (xi): {resultado[1]}')
+            st.write(f'Composição vapor (yi): {resultado[2]}')
+            st.write(f'Coeficiente de atividade (Gamma): {resultado[3]}')
+            st.write(f'Coeficiente de fugacidade (Fii): {resultado[4]}')
+            st.write(f'Constante de equilíbrio (Ki): {resultado[5]}')
+            st.write(f'Pressão de orvalho: {resultado[6]} bar')
+            st.write(f'Pressão de bolha: {resultado[7]} bar')
+        else:
+            Pbol, Porv = PBOl(T)[0], PORV(T)[0]
+            st.warning("A pressão está fora do intervalo válido para o cálculo do flash.")
+            if P < Porv:
+                st.warning("Pressão de operação menor do que a pressão de orvalho, sistema totalmente gasoso.")
+            elif P > Pbol:
+                st.info("Pressão de operação maior do que a pressão de bolha, sistema totalmente líquido.")
+            st.warning(f"Pressão de orvalho: {round(Porv, 2)} bar, Pressão de bolha: {round(Pbol, 2)} bar.")
+            

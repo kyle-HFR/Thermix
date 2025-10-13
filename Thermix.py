@@ -203,7 +203,7 @@ def Flash(T, P, n=len(dfd['w'])):
 
 
 st.header("Escolha um calculo:")
-R_inter = st.selectbox("", options=["PBOL", "PORV", "FLASH"], label_visibility="collapsed")
+R_inter = st.selectbox("", options=[" ", "PBOL", "PORV", "FLASH"], label_visibility="collapsed")
 
 # Verificação de dados antes do cálculo
 def dados_validos(dfd, Aij, T, P):
@@ -278,6 +278,7 @@ if st.button("Calcular", disabled=disabled):
             if P < Porv:
                 st.warning("Pressão de operação menor do que a pressão de orvalho, sistema totalmente gasoso.")
             elif P > Pbol:
-                st.info("Pressão de operação maior do que a pressão de bolha, sistema totalmente líquido.")
+                st.warning("Pressão de operação maior do que a pressão de bolha, sistema totalmente líquido.")
             st.warning(f"Pressão de orvalho: {round(Porv, 2)} bar, Pressão de bolha: {round(Pbol, 2)} bar.")
             
+

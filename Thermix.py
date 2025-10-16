@@ -8,16 +8,17 @@ import base64
 st.markdown("""
 <style>
 h1 {
-    font-size: 3.5rem !important;
+    font-size: 4rem !important;
     color: #1f77b4;
 }
 </style>
 """, unsafe_allow_html=True)
 
-st.title("Programa Thermix")
+st.title("Thermix")
+
+
 
 engq_url = "https://i.imgur.com/k3fpXPI.png"
-
 st.markdown(
     f"""
     <style>
@@ -38,6 +39,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+
 tab1, tab2 = st.tabs(["Página inicial", "📘 Manual de Utilização"])
 
 with tab1:
@@ -47,9 +49,9 @@ with tab1:
     st.header("Condições de operação:")
     col1, col2 = st.columns([1, 1]) 
     with col1:
-        T = st.number_input("Temperatura (K)", min_value=0.01, format="%.2f", step=0.000001)
+        T = st.number_input("Temperatura (K)", min_value=0.01, format="%.2f", step=0.000001, value=273.15)
     with col2:
-        P = st.number_input("Pressão (bar)", min_value=0.01, format="%.2f", step=0.000001)
+        P = st.number_input("Pressão (bar)", min_value=0.01, format="%.2f", step=0.000001, value=1.0)
 
     def n_float(x):
         try:
@@ -281,29 +283,84 @@ with tab1:
         with st.spinner("Calculando..."):
             if R_inter == "PBOL":
                 resultado = PBOl(T)
-                st.write(f'Pressão de bolha: {resultado[0]} bar')
-                st.write(f'Composição líquida (xi): {resultado[1]}')
-                st.write(f'Coeficiente de atividade (Gamma): {resultado[2]}')
-                st.write(f'Coeficiente de fugacidade (Fii): {resultado[3]}')
+                resultados_df = pd.DataFrame({
+                    'Parâmetro': ['Pressão de Bolha'],
+                    'Valor': [f"{resultado[0]:.4f} bar"]
+                })
+                composicao_df = pd.DataFrame({
+                    'Componente': [f'Componente {i+1}' for i in range(len(resultado[1]))],
+                    'xi': [f"{val:.6f}" for val in resultado[1]]
+                })
+                coeficientes_df = pd.DataFrame({
+                    'Componente': [f'Componente {i+1}' for i in range(len(resultado[2]))],
+                    'Coeficiente de atividade (γ)': [f"{val:.6f}" for val in resultado[2]],
+                    'Coeficiente de fugacidade (Φ)': [f"{val:.6f}" for val in resultado[3]]
+                })
+                st.subheader("Resultados - Pressão de Bolha")
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.metric("Pressão de Bolha", f"{resultado[0]:.4f} bar")
+                
+                st.subheader("Composição Líquida")
+                st.dataframe(composicao_df, use_container_width=True, hide_index=True)
+                
+                st.subheader("Coeficientes")
+                st.dataframe(coeficientes_df, use_container_width=True, hide_index=True)
 
             elif R_inter == "PORV":
                 resultado = PORV(T)
-                st.write(f'Pressão de orvalho: {resultado[0]} bar')
-                st.write(f'Composição vapor (yi): {resultado[1]}')
-                st.write(f'Coeficiente de atividade (Gamma): {resultado[2]}')
-                st.write(f'Coeficiente de fugacidade (Fii): {resultado[3]}')
+                composicao_df = pd.DataFrame({
+                    'Componente': [f'Componente {i+1}' for i in range(len(resultado[1]))],
+                    'yi': [f"{val:.6f}" for val in resultado[1]]})
+
+                coeficientes_df = pd.DataFrame({
+                    'Componente': [f'Componente {i+1}' for i in range(len(resultado[2]))],
+                    'Coeficiente de atividade (γ)': [f"{val:.6f}" for val in resultado[2]],
+                    'Coeficiente de fugacidade (Φ)': [f"{val:.6f}" for val in resultado[3]]})
+ 
+                st.subheader("Resultados - Pressão de Orvalho")
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.metric("Pressão de Orvalho", f"{resultado[0]:.4f} bar")
+                
+                st.subheader("Composição Vapor")
+                st.dataframe(composicao_df, use_container_width=True, hide_index=True)
+                
+                st.subheader("Coeficientes")
+                st.dataframe(coeficientes_df, use_container_width=True, hide_index=True)
+
 
             elif R_inter == "FLASH":
                 resultado = Flash(T, P)
                 if resultado is not None:
-                    st.write(f'Fração molar de vapor (V): {resultado[0]}')
-                    st.write(f'Composição líquida (xi): {resultado[1]}')
-                    st.write(f'Composição vapor (yi): {resultado[2]}')
-                    st.write(f'Coeficiente de atividade (Gamma): {resultado[3]}')
-                    st.write(f'Coeficiente de fugacidade (Fii): {resultado[4]}')
-                    st.write(f'Constante de equilíbrio (Ki): {resultado[5]}')
-                    st.write(f'Pressão de orvalho: {resultado[6]} bar')
-                    st.write(f'Pressão de bolha: {resultado[7]} bar')
+                    composicoes_df = pd.DataFrame({
+                        'Componente': [f'Componente {i+1}' for i in range(len(resultado[1]))],
+                        'xi (Líquido)': [f"{val:.6f}" for val in resultado[1]],
+                        'yi (Vapor)': [f"{val:.6f}" for val in resultado[2]],
+                        'Ki': [f"{val:.6f}" for val in resultado[5]]})
+                    
+                    coeficientes_df = pd.DataFrame({
+                        'Componente': [f'Componente {i+1}' for i in range(len(resultado[3]))],
+                        'Coeficiente de Atividade (γ)': [f"{val:.6f}" for val in resultado[3]],
+                        'Coeficiente de Fugacidade (Φ)': [f"{val:.6f}" for val in resultado[4]]})
+                    
+                    st.subheader("Resultados - Flash")
+                    
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.metric("Fração Vapor (V)", f"{resultado[0]:.4f}")
+                    with col2:
+                        st.metric("Pressão Bolha", f"{resultado[7]:.4f} bar")
+                    with col3:
+                        st.metric("Pressão Orvalho", f"{resultado[6]:.4f} bar")
+                    
+                    st.subheader("Composições e Constantes de Equilíbrio")
+                    st.dataframe(composicoes_df, use_container_width=True, hide_index=True)
+                    
+                    st.subheader("Coeficientes")
+                    st.dataframe(coeficientes_df, use_container_width=True, hide_index=True)
                 else:
                     Pbol, Porv = PBOl(T)[0], PORV(T)[0]
                     st.warning("A pressão está fora do intervalo válido para o cálculo do flash.")

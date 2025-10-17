@@ -44,7 +44,7 @@ tab1, tab2 = st.tabs(["Página inicial", "📘 Manual de Utilização"])
 
 with tab1:
     st.header("Quantos componentes?")
-    n = st.number_input("Número de componentes (n)", min_value=1, max_value=10, step=1)
+    n = st.number_input("Número de componentes (n)", min_value=2, max_value=10, step=1)
 
     st.header("Condições de operação:")
     col1, col2 = st.columns([1, 1]) 
@@ -397,3 +397,4 @@ with tab2:
         """,
         unsafe_allow_html=True
     )
+
